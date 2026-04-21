@@ -1,13 +1,93 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+type Todo = {
+  id: number;
+  title: string;
+  description: string;
+  completed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
+const BASE_URL = 'https://dataslidtodo-production.up.railway.app/api/todos'
    
 
 const Personal = () => {
-
-
+  const [loading,setLoading] =  useState<boolean>(false)
+  const [todos,setTodos ] =  useState<Todo[]>([])
+  const [error, setError] = useState<string | null >(null)
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [creating , setCreating] = useState(false)
+
+
+  const fetchTodos =   async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+       const res = await fetch(BASE_URL)
+       if(!res.ok) {
+        throw new Error('uanble to fetch data')
+       }
+
+       const data =  await res.json();
+       setTodos(data.data)
+    } catch (error:any) {
+       setError(error.message)
+    } finally {
+      setLoading(false)
+    }
+
+  }
+
+  useEffect(()=> {
+    fetchTodos()
+  }, [])
+
+
+  const addTodo = async () => {
+    if(!description || !title) {
+      throw new Error('All fields required');
+      return
+    } 
+     
+
+     try {
+       setCreating(true)
+       setError(null)
+
+       const res = await fetch(BASE_URL, {
+           method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title, description }),
+         
+       })
+
+       if (!res.ok) {
+          throw new Error('Failed to create Todo') 
+       }
+
+       const newTodo = await res.json()
+
+       setTodos((prev)=>[...prev, newTodo])
+       setTitle('')
+       setDescription ('')
+
+      
+     } catch (error: any) {
+        setError(error.message)
+     } finally {
+         setCreating(false)
+     }
+
+    
+
+  }
+
+
 
 
   return (
@@ -15,7 +95,7 @@ const Personal = () => {
       <div className="w-full max-w-2xl bg-white/70 backdrop-blur-lg shadow-2xl rounded-2xl p-6">
         {/* Header */}
         <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-          ✨ My Todo App
+           My Todo App
         </h1>
 
         {/* Form */}
@@ -36,29 +116,29 @@ const Personal = () => {
             className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400"
           />
 
-          <button className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-all">
-            Add Todo
+          <button onClick={addTodo} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-all">
+           { creating? 'Creating Todo' : ' Add Todo'}
           </button>
         </div>
 
         {/* Todo List */}
         <div className="space-y-3">
-          {[1, 2, 3].map((item) => (
+          { todos.map((todo) => (
             <div
-              key={item}
+              key={todo.id}
               className="flex items-center justify-between bg-white shadow-md rounded-xl p-4 hover:shadow-lg transition"
             >
               <div>
                 <p className="font-semibold text-gray-800">
-                  Sample Todo {item}
+                  {todo.title}
                 </p>
                 <p className="text-sm text-gray-500">
-                  This is a description
+                  {todo.description}
                 </p>
               </div>
 
               <div className="flex gap-2">
-                <button className="px-3 py-1 bg-green-100 text-green-600 rounded-lg text-sm">
+                <button  className="px-3 py-1 bg-green-100 text-green-600 rounded-lg text-sm">
                   ✓
                 </button>
                 <button className="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-lg text-sm">
